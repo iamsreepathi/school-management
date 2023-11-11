@@ -1,0 +1,185 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  sms
+
+  Dev SAM Template for sms
+  
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+
+Resources:
+  SmsApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Dev
+      DefinitionBody:
+        openapi: "3.0.0"
+        info:
+          title: "School Management System API"
+        paths:
+          /ping:
+            get:
+              x-amazon-apigateway-integration:
+                type: "aws_proxy"
+                httpMethod: POST
+                payloadFormatVersion: "2.0"
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PingFunction.Arn}/invocations
+            responses:
+              "200":
+                description: "Ping Response"
+                content:
+                  application/json:
+                    example:
+                      message: "Hi There! Meet School Management System"
+  SmsLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: SmsLambdaExecutionRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaDynamoDBPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:UpdateItem"
+                  - "dynamodb:DeleteItem"
+                  - "dynamodb:PartiQLSelect"
+                Resource: "arn:aws:dynamodb:us-east-2:424848754882:table/students"
+  NodeLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: node-layer
+      ContentUri: ./layers
+      CompatibleRuntimes:
+        - nodejs18.x
+  PingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Ping endpoint
+      CodeUri: ping/get
+      Handler: function.lambdaHandler
+      Runtime: nodejs18.x
+      Role: !GetAtt SmsLambdaExecutionRole.Arn
+      Layers:
+        - !Ref NodeLayer
+      Architectures:
+        - x86_64
+  GetStudentsFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Description: Get a list of students from students table
+      CodeUri: student/get
+      Handler: function.lambdaHandler
+      Runtime: nodejs18.x
+      Role: !GetAtt SmsLambdaExecutionRole.Arn
+      Layers:
+        - !Ref NodeLayer
+      Architectures:
+        - x86_64
+      # Events:
+      #   HelloWorld:
+      #     Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+      #     Properties:
+      #       Path: /students
+      #       Method: get
+  DeleteStudentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Deletes a student from students table using student id
+      CodeUri: student/delete
+      Handler: function.lambdaHandler
+      Runtime: nodejs18.x
+      Role: !GetAtt SmsLambdaExecutionRole.Arn
+      Layers:
+        - !Ref NodeLayer
+      Architectures:
+        - x86_64
+      # Events:
+      #   HelloWorld:
+      #     Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+      #     Properties:
+      #       Path: /students
+      #       Method: get
+  PostStudentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Puts a student into students table
+      CodeUri: student/post
+      Handler: function.lambdaHandler
+      Runtime: nodejs18.x
+      Role: !GetAtt SmsLambdaExecutionRole.Arn
+      Layers:
+        - !Ref NodeLayer
+      Architectures:
+        - x86_64
+      # Events:
+      #   HelloWorld:
+      #     Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+      #     Properties:
+      #       Path: /students
+      #       Method: post
+  PutStudentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Updates a student in students table
+      CodeUri: student/put
+      Handler: function.lambdaHandler
+      Runtime: nodejs18.x
+      Role: !GetAtt SmsLambdaExecutionRole.Arn
+      Layers:
+        - !Ref NodeLayer
+      Architectures:
+        - x86_64
+      # Events:
+      #   HelloWorld:
+      #     Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+      #     Properties:
+      #       Path: /students
+      #       Method: post
+  PingApiPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Ref PingFunction
+      Principal: "apigateway.amazonaws.com"
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SmsApi}/*"
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  # HelloWorldApi:
+  #   Description: "API Gateway endpoint URL for Prod stage for Hello World function"
+  #   Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+  PingFunction:
+    Description: "Ping Lambda Function ARN"
+    Value: !GetAtt PingFunction.Arn
+  GetStudentsFunction:
+    Description: "Get Students Lambda Function ARN"
+    Value: !GetAtt GetStudentsFunction.Arn
+  DeleteStudentFunction:
+    Description: "Delete Student Lambda Function ARN"
+    Value: !GetAtt DeleteStudentFunction.Arn
+  PostStudentFunction:
+    Description: "Put Student Lambda Function ARN"
+    Value: !GetAtt PostStudentFunction.Arn
+  PutStudentFunction:
+    Description: "Put Student Lambda Function ARN"
+    Value: !GetAtt PutStudentFunction.Arn
+  SmsLambdaExecutionRole:
+    Description: "Implicit IAM Role created for sms application"
+    Value: !GetAtt SmsLambdaExecutionRole.Arn
