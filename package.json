@@ -1,24 +1,29 @@
 {
-  "name": "hello_world",
-  "version": "1.0.0",
-  "description": "hello world sample for NodeJS",
-  "main": "app.js",
-  "repository": "https://github.com/awslabs/aws-sam-cli/tree/develop/samcli/local/init/templates/cookiecutter-aws-sam-hello-nodejs",
-  "author": "SAM CLI",
-  "license": "MIT",
-  "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.441.0",
-    "@aws-sdk/lib-dynamodb": "^3.441.0",
-    "ajv": "^8.12.0",
-    "ajv-formats": "^2.1.1",
-    "axios": ">=0.21.1",
-    "uuid": "^9.0.1"
-  },
-  "scripts": {
-    "test": "mocha tests/unit/"
-  },
-  "devDependencies": {
-    "chai": "^4.3.6",
-    "mocha": "^10.1.0"
-  }
+    "name": "hello_world",
+    "version": "1.0.0",
+    "description": "hello world sample for NodeJS",
+    "main": "app.js",
+    "repository": "https://github.com/awslabs/aws-sam-cli/tree/develop/samcli/local/init/templates/cookiecutter-aws-sam-hello-nodejs",
+    "author": "SAM CLI",
+    "license": "MIT",
+    "dependencies": {
+        "@aws-sdk/client-dynamodb": "^3.441.0",
+        "@aws-sdk/lib-dynamodb": "^3.441.0",
+        "ajv": "^8.12.0",
+        "ajv-formats": "^2.1.1",
+        "axios": ">=0.21.1",
+        "uuid": "^9.0.1"
+    },
+    "scripts": {
+        "lint": "eslint .",
+        "format": "prettier --write ."
+    },
+    "devDependencies": {
+        "chai": "^4.3.6",
+        "eslint": "^8.53.0",
+        "eslint-config-prettier": "^9.0.0",
+        "eslint-plugin-prettier": "^5.0.1",
+        "mocha": "^10.1.0",
+        "prettier": "^3.0.3"
+    }
 }
