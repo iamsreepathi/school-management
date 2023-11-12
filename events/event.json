@@ -4,6 +4,9 @@
     "path": "/path/to/resource",
     "httpMethod": "GET",
     "isBase64Encoded": false,
+    "queryStringParameters": {
+        "limit": "test"
+    },
     "pathParameters": {
         "proxy": "/path/to/resource"
     },

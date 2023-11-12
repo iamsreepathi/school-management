@@ -13,9 +13,26 @@
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
 import { ExecuteStatementCommand, DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb'
+import Ajv from 'ajv'
+import addFormats from 'ajv-formats'
 
 const client = new DynamoDBClient({})
 const docClient = DynamoDBDocumentClient.from(client)
+
+const ajv = new Ajv()
+const schema = {
+    type: 'object',
+    properties: {
+        limit: {
+            type: 'integer',
+        },
+        key: {
+            type: ['string', 'null'],
+        },
+    },
+}
+
+const validate = ajv.compile(schema)
 
 export const lambdaHandler = async (event, context) => {
     let pageSize = 10 // Set your desired page size
@@ -23,8 +40,20 @@ export const lambdaHandler = async (event, context) => {
 
     if (event.queryStringParameters) {
         const { limit, key } = event.queryStringParameters
-        if (limit) pageSize = limit
+        if (limit) pageSize = +limit
         if (key) token = key
+
+        const valid = validate({ limit: pageSize, key: token })
+        if (!valid) {
+            const errors = validate.errors.map((e) => ({
+                field: e.instancePath,
+                message: e.message,
+            }))
+            return {
+                statusCode: 400,
+                body: JSON.stringify({ error: 'Invalid data format', errors }),
+            }
+        }
     }
 
     const statement = 'SELECT * FROM students'
