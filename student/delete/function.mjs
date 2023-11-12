@@ -51,15 +51,30 @@ export const lambdaHandler = async (event, context) => {
     })
     try {
         await client.send(command)
-        const res = {
+        return {
             statusCode: 200,
-            body: {
+            body: JSON.stringify({
                 message: `Student ${id} successfully deleted.`,
-            },
+            }),
         }
-        context.succeed(JSON.stringify(res))
     } catch (error) {
-        console.log(error)
-        return error
+        const metadata = err.$metadata
+        if (metadata) {
+            const statusCode = metadata.httpStatusCode
+            if (statusCode === 400)
+                return {
+                    statusCode,
+                    body: JSON.stringify({
+                        error: err.message,
+                    }),
+                }
+        }
+        console.log(err)
+        return {
+            statusCode: 500,
+            body: JSON.stringify({
+                error: 'Internal Server Error',
+            }),
+        }
     }
 }

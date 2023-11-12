@@ -19,20 +19,6 @@ import { student } from '/opt/shared/student/schema.mjs'
 
 const client = new DynamoDBClient({})
 
-// create student schema
-// const schema = {
-//     type: 'object',
-//     properties: {
-//         fullName: { type: 'string', maxLength: 50 },
-//         dateOfBirth: { type: 'string', format: 'date' },
-//         contact: { type: 'string', format: 'email' },
-//         address: { type: 'string', maxLength: 255 },
-//         gaurdian: { type: 'string', maxLength: 50 },
-//     },
-//     required: ['fullName', 'dateOfBirth', 'contact', 'address', 'gaurdian'],
-//     additionalProperties: false,
-// }
-
 const ajv = new Ajv()
 
 addFormats(ajv, { mode: 'fast', formats: ['date', 'email', 'uuid'] })
@@ -79,7 +65,23 @@ export const lambdaHandler = async (event, context) => {
             body: JSON.stringify({ id, ...item }),
         }
     } catch (err) {
+        const metadata = err.$metadata
+        if (metadata) {
+            const statusCode = metadata.httpStatusCode
+            if (statusCode === 400)
+                return {
+                    statusCode,
+                    body: JSON.stringify({
+                        error: err.message,
+                    }),
+                }
+        }
         console.log(err)
-        return err
+        return {
+            statusCode: 500,
+            body: JSON.stringify({
+                error: 'Internal Server Error',
+            }),
+        }
     }
 }

@@ -36,6 +36,33 @@ Resources:
                                         example:
                                             message: 'Hi There! Meet School Management System'
                     /students:
+                        post:
+                            x-amazon-apigateway-integration:
+                                type: 'aws_proxy'
+                                httpMethod: POST
+                                payloadFormatVersion: '2.0'
+                                uri:
+                                    Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PostStudentFunction.Arn}/invocations
+                            requestBody:
+                                description: Create student payload
+                                required: true
+                                content:
+                                    application/json:
+                                        schema:
+                                            $ref: '#/components/schemas/Student'
+                            responses:
+                                '200':
+                                    description: 'Students Response'
+                                    content:
+                                        application/json:
+                                            schema:
+                                                $ref: '#/components/schemas/Student'
+                                '400':
+                                    description: 'Bad Request'
+                                    content:
+                                        application/json:
+                                            schema:
+                                                $ref: '#/components/schemas/BadRequest'
                         get:
                             x-amazon-apigateway-integration:
                                 type: 'aws_proxy'
@@ -43,18 +70,135 @@ Resources:
                                 payloadFormatVersion: '2.0'
                                 uri:
                                     Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetStudentsFunction.Arn}/invocations
-                        responses:
-                            '200':
-                                description: 'Students Response'
+                            responses:
+                                '200':
+                                    description: 'Students Response'
+                                    content:
+                                        application/json:
+                                            schema:
+                                                type: object
+                                                properties:
+                                                    items:
+                                                        type: array
+                                                        items:
+                                                            $ref: '#/components/schemas/Student'
+                                                    token:
+                                                        type: string
+                                '400':
+                                    description: 'Bad Request'
+                                    content:
+                                        application/json:
+                                            schema:
+                                                $ref: '#/components/schemas/BadRequest'
+                    /students/{id}:
+                        delete:
+                            x-amazon-apigateway-integration:
+                                type: 'aws_proxy'
+                                httpMethod: POST
+                                payloadFormatVersion: '2.0'
+                                uri:
+                                    Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DeleteStudentFunction.Arn}/invocations
+                            parameters:
+                                - in: path
+                                  name: id
+                                  type: string
+                                  format: uuid
+                                  required: true
+                                  description: Student id.
+                            responses:
+                                '200':
+                                    description: 'Students Response'
+                                    content:
+                                        application/json:
+                                            schema:
+                                                type: object
+                                                properties:
+                                                    message:
+                                                        type: string
+                                                        description: Studetn delete message
+                                '400':
+                                    description: 'Bad Request'
+                                    content:
+                                        application/json:
+                                            schema:
+                                                $ref: '#/components/schemas/BadRequest'
+                        put:
+                            x-amazon-apigateway-integration:
+                                type: 'aws_proxy'
+                                httpMethod: POST
+                                payloadFormatVersion: '2.0'
+                                uri:
+                                    Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PutStudentFunction.Arn}/invocations
+                            parameters:
+                                - in: path
+                                  name: id
+                                  type: string
+                                  format: uuid
+                                  required: true
+                                  description: Student id.
+                            requestBody:
+                                description: Update student payload
+                                required: true
                                 content:
                                     application/json:
-                                        items: []
-                                        token: 'UIAj+D8I+ZNEESaKbeEcK5pTMAJ41PmG222J8whkORt0tXnMPYR5v2GxGQCfjnt8PTfE0DI7fGPoxB2'
-                            '400':
-                                description: 'Bad Request'
-                                content:
-                                    application/json:
-                                        error: 'Invalid request'
+                                        schema:
+                                            $ref: '#/components/schemas/Student'
+                            responses:
+                                '200':
+                                    description: 'Students Response'
+                                    content:
+                                        application/json:
+                                            schema:
+                                                $ref: '#/components/schemas/Student'
+                                '400':
+                                    description: 'Bad Request'
+                                    content:
+                                        application/json:
+                                            schema:
+                                                $ref: '#/components/schemas/BadRequest'
+                components:
+                    schemas:
+                        ValidationError:
+                            type: object
+                            properties:
+                                field:
+                                    type: string
+                                    description: Validation property name
+                                message:
+                                    type: string
+                                    description: Validation error message
+                        BadRequest:
+                            type: object
+                            properties:
+                                error:
+                                    type: string
+                                    description: General error description
+                                errors:
+                                    type: array
+                                    items:
+                                        $ref: '#/components/schemas/ValidationError'
+                        Student:
+                            type: object
+                            properties:
+                                id:
+                                    type: string
+                                    format: uuid
+                                    description: Student id
+                                fullName:
+                                    type: string
+                                    description: Student full name
+                                dateOfBirth:
+                                    type: string
+                                    description: Date of birth
+                                contact:
+                                    type: string
+                                    description: Email address
+                                address:
+                                    type: string
+                                    description: Home address
+                                gaurdian:
+                                    type: string
+                                    description: Legal gaurdian
 
     SmsLambdaExecutionRole:
         Type: AWS::IAM::Role
@@ -191,6 +335,27 @@ Resources:
             FunctionName: !Ref GetStudentsFunction
             Principal: 'apigateway.amazonaws.com'
             SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SmsApi}/*/GET/students'
+    PostStudentApiPermission:
+        Type: AWS::Lambda::Permission
+        Properties:
+            Action: 'lambda:InvokeFunction'
+            FunctionName: !Ref PostStudentFunction
+            Principal: 'apigateway.amazonaws.com'
+            SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SmsApi}/*/POST/students'
+    PutStudentApiPermission:
+        Type: AWS::Lambda::Permission
+        Properties:
+            Action: 'lambda:InvokeFunction'
+            FunctionName: !Ref PutStudentFunction
+            Principal: 'apigateway.amazonaws.com'
+            SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SmsApi}/*/PUT/students/{id}'
+    DeleteStudentApiPermission:
+        Type: AWS::Lambda::Permission
+        Properties:
+            Action: 'lambda:InvokeFunction'
+            FunctionName: !Ref DeleteStudentFunction
+            Principal: 'apigateway.amazonaws.com'
+            SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SmsApi}/*/DELETE/students/{id}'
 
 Outputs:
     # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
