@@ -19,11 +19,13 @@ const docClient = DynamoDBDocumentClient.from(client)
 
 export const lambdaHandler = async (event, context) => {
     let pageSize = 10 // Set your desired page size
+    let token = null
 
-    const { limit, key } = event.queryStringParameters
-
-    if (limit) pageSize = limit
-    const token = key ? key : null
+    if (event.queryStringParameters) {
+        const { limit, key } = event.queryStringParameters
+        if (limit) pageSize = limit
+        if (key) token = key
+    }
 
     const statement = 'SELECT * FROM students'
     const command = new ExecuteStatementCommand({

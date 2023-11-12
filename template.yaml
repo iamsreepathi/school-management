@@ -35,6 +35,27 @@ Resources:
                                     application/json:
                                         example:
                                             message: 'Hi There! Meet School Management System'
+                    /students:
+                        get:
+                            x-amazon-apigateway-integration:
+                                type: 'aws_proxy'
+                                httpMethod: POST
+                                payloadFormatVersion: '2.0'
+                                uri:
+                                    Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetStudentsFunction.Arn}/invocations
+                        responses:
+                            '200':
+                                description: 'Students Response'
+                                content:
+                                    application/json:
+                                        items: []
+                                        token: 'UIAj+D8I+ZNEESaKbeEcK5pTMAJ41PmG222J8whkORt0tXnMPYR5v2GxGQCfjnt8PTfE0DI7fGPoxB2'
+                            '400':
+                                description: 'Bad Request'
+                                content:
+                                    application/json:
+                                        error: 'Invalid request'
+
     SmsLambdaExecutionRole:
         Type: AWS::IAM::Role
         Properties:
@@ -78,6 +99,12 @@ Resources:
                 - !Ref NodeLayer
             Architectures:
                 - x86_64
+            # Events:
+            #     PingEvent:
+            #         Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+            #         Properties:
+            #             Path: /ping
+            #             Method: post
     GetStudentsFunction:
         Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
         Properties:
@@ -156,7 +183,14 @@ Resources:
             Action: 'lambda:InvokeFunction'
             FunctionName: !Ref PingFunction
             Principal: 'apigateway.amazonaws.com'
-            SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SmsApi}/*'
+            SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SmsApi}/*/GET/ping'
+    GetStudentsApiPermission:
+        Type: AWS::Lambda::Permission
+        Properties:
+            Action: 'lambda:InvokeFunction'
+            FunctionName: !Ref GetStudentsFunction
+            Principal: 'apigateway.amazonaws.com'
+            SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SmsApi}/*/GET/students'
 
 Outputs:
     # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
