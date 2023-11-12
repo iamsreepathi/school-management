@@ -1,5 +1,5 @@
 {
-    "body": "{\"fullName\":\"Prashanth Sreepathi\",\"dateOfBirth\":\"2002-01-02\",\"contact\":\"john.doe@example.com\",\"address\":\"123 Main St, Sioux Falls, SD, 57108\",\"gaurdian\":\"Jane Doe\"}",
+    "body": "{\"fullName\":\"Prashanth Sreepathi\",\"dateOfBirth\":\"test\",\"contact\":\"john.doe@example.com\",\"address\":\"123 Main St, Sioux Falls, SD, 57108\",\"gaurdian\":\"Jane Doe\"}",
     "resource": "/{proxy+}",
     "path": "/students",
     "httpMethod": "POST",

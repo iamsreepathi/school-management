@@ -14,29 +14,15 @@
 import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb'
 import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
+import { student } from '/opt/shared/student/schema.mjs'
 
 const client = new DynamoDBClient({})
-
-// create student schema
-const schema = {
-    type: 'object',
-    properties: {
-        id: { type: 'string', format: 'uuid' },
-        fullName: { type: 'string', maxLength: 50 },
-        dateOfBirth: { type: 'string', format: 'date' },
-        contact: { type: 'string', format: 'email' },
-        address: { type: 'string', maxLength: 255 },
-        gaurdian: { type: 'string', maxLength: 50 },
-    },
-    required: ['id', 'fullName', 'dateOfBirth', 'contact', 'address', 'gaurdian'],
-    additionalProperties: false,
-}
 
 const ajv = new Ajv()
 
 addFormats(ajv, { mode: 'fast', formats: ['date', 'email', 'uuid'] })
 
-const validate = ajv.compile(schema)
+const validate = ajv.compile(student)
 
 export const lambdaHandler = async (event, context) => {
     const { body } = event
