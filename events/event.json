@@ -5,7 +5,7 @@
     "httpMethod": "GET",
     "isBase64Encoded": false,
     "queryStringParameters": {
-        "foo": "bar"
+        "key": "UIAj+D8I+ZNEESaKbeEcK5pTMAJ41PmG222J8whkORt0tXnMPYR5v2GxGQCfjnt8PTfE0DI7fGPoxB2biJf6DJMvDu2jxrka7zbLce8/y9aMjGikAhxDBk2wYDDkbnIlSWs2LORaOwK7J2PL4dsMDnGvhnLiqeNKSV6YTe42wTWb0ywaWVsklQkZVHfeF4JE8ueAA++da1IHOXfZUukF+VzcOMzo2eNi8X8WIKufZ+AsDvNYpM3Zq8o3Tcfh+AcPYdQltpcG46PrW7aZMliNsTDYdvUv51qNn708itEXUIY1W7y2rGBrnGLN7QZOKVJ4qWRqnJhmNHJE01rsNOd2dGZQNdJK+0tUbGjo0+i8NoqLoW"
     },
     "pathParameters": {
         "proxy": "/path/to/resource"

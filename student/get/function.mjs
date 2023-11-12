@@ -18,19 +18,47 @@ const client = new DynamoDBClient({})
 const docClient = DynamoDBDocumentClient.from(client)
 
 export const lambdaHandler = async (event, context) => {
-    const stmt = `SELECT * FROM students`
+    let pageSize = 10 // Set your desired page size
+
+    const { limit, key } = event.queryStringParameters
+
+    if (limit) pageSize = limit
+    const token = key ? key : null
+
+    const statement = 'SELECT * FROM students'
     const command = new ExecuteStatementCommand({
-        Statement: stmt,
-        ConsistentRead: true,
+        Statement: statement,
+        NextToken: token,
+        Limit: pageSize,
     })
     try {
-        const { Items, $metadata } = await docClient.send(command)
+        const { $metadata, NextToken, Items } = await docClient.send(command)
+        const token = NextToken ? NextToken : null
         return {
             statusCode: $metadata.httpStatusCode,
-            body: Items,
+            body: JSON.stringify({
+                items: Items,
+                token,
+            }),
         }
     } catch (err) {
+        const metadata = err.$metadata
+        if (metadata) {
+            const statusCode = metadata.httpStatusCode
+            if (statusCode === 400)
+                return {
+                    statusCode,
+                    body: JSON.stringify({
+                        error: err.message,
+                    }),
+                }
+        }
         console.log(err)
-        return err
+        return {
+            statusCode: 500,
+            body: JSON.stringify({
+                error: 'Internal Server Error',
+            }),
+        }
     }
 }
