@@ -1,5 +1,5 @@
 {
-    "body": "{\"id\": \"958e7443-15e6-42de-a169-518c594a0e69\", \"fullName\":\"Prashanth\",\"dateOfBirth\":\"2013-08-08\",\"contact\":\"john.doe@example.com\",\"address\":\"123 Main St, Sioux Falls, SD, 57108\",\"gaurdian\":\"Jane Doe\"}",
+    "body": "{\"id\": \"958e7443-15e6-42de-a169-518c594a0e69\", \"fullName\":\"Prashanth Sreepathi\",\"dateOfBirth\":\"2013-08-08\",\"contact\":\"john.doe@example.com\",\"address\":\"123 Main St, Sioux Falls, SD, 57108\",\"gaurdian\":\"Jane Doe\"}",
     "resource": "/{proxy+}",
     "path": "/students/{id}",
     "httpMethod": "PUT",

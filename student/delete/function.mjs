@@ -12,10 +12,37 @@
  */
 
 import { DynamoDBClient, DeleteItemCommand } from '@aws-sdk/client-dynamodb'
+import Ajv from 'ajv'
+import addFormats from 'ajv-formats'
+
 const client = new DynamoDBClient({})
+
+const ajv = new Ajv()
+
+const schema = {
+    type: 'object',
+    properties: {
+        id: { type: 'string', format: 'uuid' },
+    },
+}
+
+addFormats(ajv, { mode: 'fast', formats: ['uuid'] })
+
+const validate = ajv.compile(schema)
 
 export const lambdaHandler = async (event, context) => {
     const id = event.pathParameters.id
+    // Validate the data against the schema
+    const valid = validate({ id })
+
+    if (!valid) {
+        const errors = validate.errors.map((e) => ({ field: e.instancePath, message: e.message }))
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ error: 'Invalid data format', errors }),
+        }
+    }
+
     const command = new DeleteItemCommand({
         TableName: 'students',
         Key: {

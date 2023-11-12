@@ -69,6 +69,7 @@ export const lambdaHandler = async (event, context) => {
             gaurdian: { S: item.gaurdian },
         },
     })
+
     try {
         const { $metadata } = await client.send(command)
         console.log($metadata)
