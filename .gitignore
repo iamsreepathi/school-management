@@ -208,3 +208,4 @@ $RECYCLE.BIN/
 # End of https://www.toptal.com/developers/gitignore/api/osx,node,linux,windows,sam
 layers/node_modules
 layers/package*
+http

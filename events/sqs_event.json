@@ -1,0 +1,15 @@
+{
+    "Records": [
+        {
+            "messageId": "dce9c748-b6db-4cc8-8aa0-17b42a2c6556",
+            "receiptHandle": "AQEBtfYkpsAN1p2/fUJI37G8zyY4hK1eR/XgxDcbNEu4CooRKNgQU2CA3uWzzOD8ZtpvAdNr0HR1fsZkdlcfAe71eWKBGAHk5nhExSRqVaB5vl2/cfg5gw9ZdwQQuRa1x3itdpkha8qYPg+K/kPYw6o1u6tP6phRKjMSbI4GFU4lNzrusSrUnYx9p78z5lcOouyFNREX7tEmaOJUWQydF5p26NoIbs5sFxGY2Zc0hymh/w8N/OBw1O1GUgOInSXzix/Pd7m/zAlOz9iowkzLGZ+94m847newhYVei8Eu9pE0Es1XUK82p0dY4iGFbmnSzZK/OB/5TA7q7jYkToQ9qob1LNfMrTdRfbjQ6vXPptOKoo0OV2Qo4cy3tO8p7/nztPqU/8GHfKcYmodhSTPzB+dXcA==",
+            "body": "{\"data\":{\"name\":\"John Doe\",\"email\":\"s.prasantreddy94@gmail.com\",\"subject\":\"Wanna Join!\",\"description\":\"Lorem ipsum dolor sit amet consectetur adipisicing elit. At sed optio repellendus nam, similique aliquam voluptas repudiandae tenetur reprehenderit recusandae culpa fugiat, inventore consequatur illo quam rerum, voluptatem sint assumenda.\"},\"template\":\"sms/contact_us.html\"}",
+            "attributes": [],
+            "messageAttributes": {},
+            "md5OfBody": "5d03bedad68c534fbbc3f98f3da59206",
+            "eventSource": "aws:sqs",
+            "eventSourceARN": "arn:aws:sqs:us-east-2:424848754882:SmsNotificationQueue",
+            "awsRegion": "us-east-2"
+        }
+    ]
+}

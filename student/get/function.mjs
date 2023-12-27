@@ -14,7 +14,6 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
 import { ExecuteStatementCommand, DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb'
 import Ajv from 'ajv'
-import addFormats from 'ajv-formats'
 
 const client = new DynamoDBClient({})
 const docClient = DynamoDBDocumentClient.from(client)
@@ -34,6 +33,10 @@ const schema = {
 
 const validate = ajv.compile(schema)
 
+const headers = {
+    'Access-Control-Allow-Origin': '*',
+}
+
 export const lambdaHandler = async (event, context) => {
     let pageSize = 10 // Set your desired page size
     let token = null
@@ -52,6 +55,7 @@ export const lambdaHandler = async (event, context) => {
             return {
                 statusCode: 400,
                 body: JSON.stringify({ error: 'Invalid data format', errors }),
+                headers,
             }
         }
     }
@@ -63,14 +67,16 @@ export const lambdaHandler = async (event, context) => {
         Limit: pageSize,
     })
     try {
+        console.log(token)
         const { $metadata, NextToken, Items } = await docClient.send(command)
-        const token = NextToken ? NextToken : null
+        token = NextToken ? NextToken : null
         return {
             statusCode: $metadata.httpStatusCode,
             body: JSON.stringify({
                 items: Items,
                 token,
             }),
+            headers,
         }
     } catch (err) {
         const metadata = err.$metadata
@@ -82,6 +88,7 @@ export const lambdaHandler = async (event, context) => {
                     body: JSON.stringify({
                         error: err.message,
                     }),
+                    headers,
                 }
         }
         console.log(err)
@@ -90,6 +97,7 @@ export const lambdaHandler = async (event, context) => {
             body: JSON.stringify({
                 error: 'Internal Server Error',
             }),
+            headers,
         }
     }
 }

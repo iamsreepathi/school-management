@@ -1,8 +1,8 @@
 {
-    "body": "{\"message\": \"hello world\"}",
+    "body": "{\"name\": \"Prashanth Sreepathi\",\"email\": \"johndoe@example.com\",\"subject\": \"Website Enquiry\",\"description\": \"I would like to enroll courses from your website\"}",
     "resource": "/{proxy+}",
     "path": "/path/to/resource",
-    "httpMethod": "GET",
+    "httpMethod": "POST",
     "isBase64Encoded": false,
     "queryStringParameters": {
         "limit": "1",

@@ -11,6 +11,18 @@ Globals:
         Timeout: 3
 
 Resources:
+    MailTemplateBucket:
+        Type: AWS::S3::Bucket
+        Properties:
+            BucketName: static-mail-templates
+            AccessControl: Private
+    NotificationQueue:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: SmsNotificationQueue
+            VisibilityTimeout: 60
+            MaximumMessageSize: 2048
+            MessageRetentionPeriod: 86400
     SmsApi:
         Type: AWS::Serverless::Api
         Properties:
@@ -20,6 +32,34 @@ Resources:
                 info:
                     title: 'School Management System API'
                 paths:
+                    /notifications:
+                        post:
+                            x-amazon-apigateway-integration:
+                                type: 'aws_proxy'
+                                httpMethod: POST
+                                payloadFormatVersion: '2.0'
+                                uri:
+                                    Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PostNotificationFunction.Arn}/invocations
+                        requestBody:
+                            description: Post notification payload
+                            required: true
+                            content:
+                                application/json:
+                                    schema:
+                                        $ref: '#/components/schemas/Notification'
+                        responses:
+                            '202':
+                                description: 'Notification Response'
+                                content:
+                                    application/json:
+                                        schema:
+                                            $ref: '#/components/schemas/NotificationResponse'
+                            '500':
+                                description: 'Bad Request'
+                                content:
+                                    application/json:
+                                        schema:
+                                            $ref: '#/components/schemas/ServerError'
                     /ping:
                         get:
                             x-amazon-apigateway-integration:
@@ -167,6 +207,26 @@ Resources:
                                 message:
                                     type: string
                                     description: Validation error message
+                        ServerError:
+                            type: object
+                            properties:
+                                message:
+                                    type: string
+                                    description: Unknown server error
+                        NotificationRequest:
+                            type: object
+                            properties:
+                                data:
+                                    type: object
+                                    description: Template data
+                                template:
+                                    type: string
+                                    description: Template name
+                        NotificationResponse:
+                            type: object
+                            properties:
+                                message: string
+                                description: Notification request accepted
                         BadRequest:
                             type: object
                             properties:
@@ -199,7 +259,6 @@ Resources:
                                 gaurdian:
                                     type: string
                                     description: Legal gaurdian
-
     SmsLambdaExecutionRole:
         Type: AWS::IAM::Role
         Properties:
@@ -212,6 +271,40 @@ Resources:
                           Service: lambda.amazonaws.com
                       Action: sts:AssumeRole
             Policies:
+                - PolicyName: S3ReadAccessPolicy
+                  PolicyDocument:
+                      Version: '2012-10-17'
+                      Statement:
+                          - Effect: Allow
+                            Action:
+                                - s3:GetObject
+                            Resource:
+                                Fn::Join:
+                                    - ''
+                                    - - 'arn:aws:s3:::'
+                                      - Ref: MailTemplateBucket
+                                      - '/*'
+                - PolicyName: LambdaSQSPolicy
+                  PolicyDocument:
+                      Version: '2012-10-17'
+                      Statement:
+                          - Effect: Allow
+                            Action:
+                                - sqs:SendMessage
+                                - sqs:ReceiveMessage
+                                - sqs:DeleteMessage
+                                - sqs:GetQueueAttributes
+                            Resource: !GetAtt NotificationQueue.Arn
+                - PolicyName: LogGroupPolicy
+                  PolicyDocument:
+                      Version: '2012-10-17'
+                      Statement:
+                          - Effect: Allow
+                            Action:
+                                - logs:CreateLogGroup
+                                - logs:CreateLogStream
+                                - logs:PutLogEvents
+                            Resource: 'arn:aws:logs:*:*:*'
                 - PolicyName: LambdaDynamoDBPolicy
                   PolicyDocument:
                       Version: '2012-10-17'
@@ -321,6 +414,37 @@ Resources:
             #     Properties:
             #       Path: /students
             #       Method: post
+    PostNotificationFunction:
+        Type: AWS::Serverless::Function
+        Properties:
+            Description: Send email notification to users
+            CodeUri: notification/post
+            Handler: function.lambdaHandler
+            Runtime: nodejs18.x
+            Role: !GetAtt SmsLambdaExecutionRole.Arn
+            Layers:
+                - !Ref NodeLayer
+            Architectures:
+                - x86_64
+    EmailNotificationFunction:
+        Type: AWS::Serverless::Function
+        Properties:
+            Description: Sends email using SES service
+            CodeUri: notification/ses
+            Handler: function.lambdaHandler
+            Runtime: nodejs18.x
+            Role: !GetAtt SmsLambdaExecutionRole.Arn
+            Layers:
+                - !Ref NodeLayer
+            Architectures:
+                - x86_64
+            Events:
+                SQSNotificationEvent:
+                    Type: SQS
+                    Properties:
+                        Queue: !GetAtt NotificationQueue.Arn
+            Policies:
+                - CloudWatchLogs: {}
     PingApiPermission:
         Type: AWS::Lambda::Permission
         Properties:
@@ -328,6 +452,13 @@ Resources:
             FunctionName: !Ref PingFunction
             Principal: 'apigateway.amazonaws.com'
             SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SmsApi}/*/GET/ping'
+    PostNotificationApiPermission:
+        Type: AWS::Lambda::Permission
+        Properties:
+            Action: 'lambda:InvokeFunction'
+            FunctionName: !Ref PostNotificationFunction
+            Principal: 'apigateway.amazonaws.com'
+            SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SmsApi}/*/POST/notifications'
     GetStudentsApiPermission:
         Type: AWS::Lambda::Permission
         Properties:
@@ -379,6 +510,12 @@ Outputs:
     PutStudentFunction:
         Description: 'Put Student Lambda Function ARN'
         Value: !GetAtt PutStudentFunction.Arn
+    PostNotificationFunction:
+        Description: 'Send email notification to SQS'
+        Value: !GetAtt PostNotificationFunction.Arn
+    EmailNotificationFunction:
+        Description: 'Send email notification to users'
+        Value: !GetAtt EmailNotificationFunction.Arn
     SmsLambdaExecutionRole:
         Description: 'Implicit IAM Role created for sms application'
         Value: !GetAtt SmsLambdaExecutionRole.Arn
