@@ -11,29 +11,36 @@
  *
  */
 
-import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb'
+import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb'
+import { unmarshall } from '@aws-sdk/util-dynamodb'
 import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
-import { student } from '/opt/shared/student/schema.mjs'
 
 const client = new DynamoDBClient({
     endpoint: 'http://dynamo:8000',
 })
 
+const headers = {
+    'Access-Control-Allow-Origin': '*',
+}
+
+const schema = {
+    type: 'object',
+    properties: {
+        id: { type: 'string', format: 'uuid' },
+    },
+}
 const ajv = new Ajv()
 
-addFormats(ajv, { mode: 'fast', formats: ['date', 'email', 'uuid'] })
+addFormats(ajv, { mode: 'fast', formats: ['uuid'] })
 
-const validate = ajv.compile(student)
+const validate = ajv.compile(schema)
 
 export const lambdaHandler = async (event, context) => {
-    const { body } = event
-    const item = JSON.parse(body)
-
+    const id = event.pathParameters.id
     // Validate the data against the schema
-    const valid = validate(item)
+    const valid = validate({ id })
 
-    // return invalid request response
     if (!valid) {
         const errors = validate.errors.map((e) => ({ field: e.instancePath, message: e.message }))
         return {
@@ -42,42 +49,44 @@ export const lambdaHandler = async (event, context) => {
         }
     }
 
-    const command = new PutItemCommand({
-        TableName: 'students',
-        Item: {
-            id: { S: item.id },
-            fullName: { S: item.fullName },
-            dateOfBirth: { S: item.dateOfBirth },
-            contact: { S: item.contact },
-            address: { S: item.address },
-            gaurdian: { S: item.gaurdian },
+    const command = new GetItemCommand({
+        TableName: 'courses',
+        Key: {
+            id: { S: id },
         },
     })
+
     try {
-        const { $metadata } = await client.send(command)
-        console.log($metadata)
+        let statusCode = 404
+        let body = JSON.stringify({
+            message: 'Course not found',
+        })
+        const { Item } = await client.send(command)
+
+        if (Item) {
+            statusCode = 200
+            body = JSON.stringify(unmarshall(Item))
+        }
         return {
-            statusCode: 200,
-            body: JSON.stringify(item),
+            statusCode,
+            body,
+            headers,
         }
     } catch (err) {
+        console.error(err)
+        let statusCode = 500
+        let error = 'Internal Server Error'
         const metadata = err.$metadata
         if (metadata) {
-            const statusCode = metadata.httpStatusCode
-            if (statusCode === 400)
-                return {
-                    statusCode,
-                    body: JSON.stringify({
-                        error: err.message,
-                    }),
-                }
+            statusCode = metadata.httpStatusCode
+            error = err.message
         }
-        console.log(err)
         return {
-            statusCode: 500,
+            statusCode,
             body: JSON.stringify({
-                error: 'Internal Server Error',
+                error,
             }),
+            headers,
         }
     }
 }

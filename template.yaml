@@ -9,6 +9,12 @@ Description: >
 Globals:
     Function:
         Timeout: 3
+    Api:
+        Cors:
+            AllowMethods: "'GET,POST,OPTIONS,PUT'"
+            AllowHeaders: "'Content-Type, Accept'"
+            AllowOrigin: "'*'"
+            AllowCredentials: "'*'"
 
 Resources:
     MailTemplateBucket:
@@ -75,6 +81,94 @@ Resources:
                                     application/json:
                                         example:
                                             message: 'Hi There! Meet School Management System'
+                    /popular/courses:
+                        get:
+                            x-amazon-apigateway-integration:
+                                type: 'aws_proxy'
+                                httpMethod: POST
+                                payloadFormatVersion: '2.0'
+                                uri:
+                                    Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetPopularCoursesFunction.Arn}/invocations
+                            responses:
+                                '200':
+                                    description: 'Popular Courses Response'
+                                    content:
+                                        application/json:
+                                            schema:
+                                                type: object
+                                                properties:
+                                                    items:
+                                                        type: array
+                                                        items:
+                                                            $ref: '#/components/schemas/Course'
+                                '500':
+                                    description: 'Bad Request'
+                                    content:
+                                        application/json:
+                                            schema:
+                                                $ref: '#/components/schemas/ServerError'
+                    /courses:
+                        get:
+                            x-amazon-apigateway-integration:
+                                type: 'aws_proxy'
+                                httpMethod: POST
+                                payloadFormatVersion: '2.0'
+                                uri:
+                                    Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetCoursesFunction.Arn}/invocations
+                            responses:
+                                '200':
+                                    description: 'Courses Response'
+                                    content:
+                                        application/json:
+                                            schema:
+                                                type: object
+                                                properties:
+                                                    items:
+                                                        type: array
+                                                        items:
+                                                            $ref: '#/components/schemas/Course'
+                                                    token:
+                                                        type: string
+                                '400':
+                                    description: 'Bad Request'
+                                    content:
+                                        application/json:
+                                            schema:
+                                                $ref: '#/components/schemas/BadRequest'
+                    /courses/{id}:
+                        get:
+                            x-amazon-apigateway-integration:
+                                type: 'aws_proxy'
+                                httpMethod: POST
+                                payloadFormatVersion: '2.0'
+                                uri:
+                                    Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetCourseFunction.Arn}/invocations
+                            parameters:
+                                - in: path
+                                  name: id
+                                  type: string
+                                  format: uuid
+                                  required: true
+                                  description: Course id.
+                            responses:
+                                '200':
+                                    description: 'Course Response'
+                                    content:
+                                        application/json:
+                                            schema:
+                                                $ref: '#/components/schemas/Course'
+                                '404':
+                                    description: 'Bad Request'
+                                    content:
+                                        application/json:
+                                            schema:
+                                                $ref: '#/components/schemas/ServerError'
+                                '400':
+                                    description: 'Bad Request'
+                                    content:
+                                        application/json:
+                                            schema:
+                                                $ref: '#/components/schemas/BadRequest'
                     /students:
                         post:
                             x-amazon-apigateway-integration:
@@ -237,6 +331,31 @@ Resources:
                                     type: array
                                     items:
                                         $ref: '#/components/schemas/ValidationError'
+                        Course:
+                            type: object
+                            properties:
+                                id:
+                                    type: string
+                                    format: uuid
+                                    description: Course id
+                                name:
+                                    type: string
+                                    description: Course title
+                                description:
+                                    type: string
+                                    description: Course description
+                                schedule:
+                                    type: object
+                                    properties:
+                                        day:
+                                            type: string
+                                            description: Day of the week
+                                        time:
+                                            type: string
+                                            description: Time of the day
+                                enrolled:
+                                    type: integer
+                                    description: Total students enrolled
                         Student:
                             type: object
                             properties:
@@ -271,6 +390,15 @@ Resources:
                           Service: lambda.amazonaws.com
                       Action: sts:AssumeRole
             Policies:
+                - PolicyName: LambdaSESPolicy
+                  PolicyDocument:
+                      Version: '2012-10-17'
+                      Statement:
+                          - Effect: Allow
+                            Action:
+                                - ses:SendEmail
+                                - ses:SendRawEmail
+                            Resource: '*'
                 - PolicyName: S3ReadAccessPolicy
                   PolicyDocument:
                       Version: '2012-10-17'
@@ -316,7 +444,9 @@ Resources:
                                 - 'dynamodb:UpdateItem'
                                 - 'dynamodb:DeleteItem'
                                 - 'dynamodb:PartiQLSelect'
-                            Resource: 'arn:aws:dynamodb:us-east-2:424848754882:table/students'
+                            Resource:
+                                - 'arn:aws:dynamodb:us-east-2:424848754882:table/students'
+                                - 'arn:aws:dynamodb:us-east-2:424848754882:table/courses'
     NodeLayer:
         Type: AWS::Serverless::LayerVersion
         Properties:
@@ -342,6 +472,54 @@ Resources:
             #         Properties:
             #             Path: /ping
             #             Method: post
+    GetCourseFunction:
+        Type: AWS::Serverless::Function
+        Properties:
+            Description: Get a course by its id
+            CodeUri: course/get
+            Handler: function.lambdaHandler
+            Runtime: nodejs18.x
+            Role: !GetAtt SmsLambdaExecutionRole.Arn
+            Layers:
+                - !Ref NodeLayer
+            Architectures:
+                - x86_64
+            Events:
+                GetCourse:
+                    Type: Api
+                    Properties:
+                        Path: /courses/{id}
+                        Method: get
+    GetPopularCoursesFunction:
+        Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+        Properties:
+            Description: Get a list of courses from courses table
+            CodeUri: course/get
+            Handler: popular.lambdaHandler
+            Runtime: nodejs18.x
+            Role: !GetAtt SmsLambdaExecutionRole.Arn
+            Layers:
+                - !Ref NodeLayer
+            Architectures:
+                - x86_64
+    GetCoursesFunction:
+        Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+        Properties:
+            Description: Get a list of courses from courses table
+            CodeUri: course/get
+            Handler: courses.lambdaHandler
+            Runtime: nodejs18.x
+            Role: !GetAtt SmsLambdaExecutionRole.Arn
+            Layers:
+                - !Ref NodeLayer
+            Architectures:
+                - x86_64
+            # Events:
+            #     GetCourse:
+            #         Type: Api
+            #         Properties:
+            #             Path: /courses
+            #             Method: get
     GetStudentsFunction:
         Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
         Properties:
@@ -434,6 +612,10 @@ Resources:
             Handler: function.lambdaHandler
             Runtime: nodejs18.x
             Role: !GetAtt SmsLambdaExecutionRole.Arn
+            Environment:
+                Variables:
+                    SOURCE: '{{resolve:ssm:/sms/notifications/source}}'
+                    BUCKET: '{{resolve:ssm:/sms/notifications/templates-bucket}}'
             Layers:
                 - !Ref NodeLayer
             Architectures:
@@ -459,6 +641,20 @@ Resources:
             FunctionName: !Ref PostNotificationFunction
             Principal: 'apigateway.amazonaws.com'
             SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SmsApi}/*/POST/notifications'
+    GetCourseApiPermission:
+        Type: AWS::Lambda::Permission
+        Properties:
+            Action: 'lambda:InvokeFunction'
+            FunctionName: !Ref GetCourseFunction
+            Principal: 'apigateway.amazonaws.com'
+            SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SmsApi}/*/GET/courses/{id}'
+    GetCoursesApiPermission:
+        Type: AWS::Lambda::Permission
+        Properties:
+            Action: 'lambda:InvokeFunction'
+            FunctionName: !Ref GetCoursesFunction
+            Principal: 'apigateway.amazonaws.com'
+            SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SmsApi}/*/GET/courses'
     GetStudentsApiPermission:
         Type: AWS::Lambda::Permission
         Properties:
@@ -498,6 +694,15 @@ Outputs:
     PingFunction:
         Description: 'Ping Lambda Function ARN'
         Value: !GetAtt PingFunction.Arn
+    GetCourseFunction:
+        Description: 'Get Course Lambda Function ARN'
+        Value: !GetAtt GetCourseFunction.Arn
+    GetPopularCoursesFunction:
+        Description: 'Get Popular Courses Lambda Function ARN'
+        Value: !GetAtt GetPopularCoursesFunction.Arn
+    GetCoursesFunction:
+        Description: 'Get Courses Lambda Function ARN'
+        Value: !GetAtt GetCoursesFunction.Arn
     GetStudentsFunction:
         Description: 'Get Students Lambda Function ARN'
         Value: !GetAtt GetStudentsFunction.Arn

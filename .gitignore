@@ -209,3 +209,5 @@ $RECYCLE.BIN/
 layers/node_modules
 layers/package*
 http
+
+env.json

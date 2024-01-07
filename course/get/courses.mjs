@@ -62,14 +62,13 @@ export const lambdaHandler = async (event, context) => {
         }
     }
 
-    const statement = 'SELECT * FROM students'
+    const statement = 'SELECT * FROM courses'
     const command = new ExecuteStatementCommand({
         Statement: statement,
         NextToken: token,
         Limit: pageSize,
     })
     try {
-        console.log(token)
         const { $metadata, NextToken, Items } = await docClient.send(command)
         token = NextToken ? NextToken : null
         return {
@@ -81,23 +80,18 @@ export const lambdaHandler = async (event, context) => {
             headers,
         }
     } catch (err) {
+        console.error(err)
+        let statusCode = 500
+        let error = 'Internal Server Error'
         const metadata = err.$metadata
         if (metadata) {
-            const statusCode = metadata.httpStatusCode
-            if (statusCode === 400)
-                return {
-                    statusCode,
-                    body: JSON.stringify({
-                        error: err.message,
-                    }),
-                    headers,
-                }
+            statusCode = metadata.httpStatusCode
+            error = err.message
         }
-        console.log(err)
         return {
-            statusCode: 500,
+            statusCode,
             body: JSON.stringify({
-                error: 'Internal Server Error',
+                error,
             }),
             headers,
         }

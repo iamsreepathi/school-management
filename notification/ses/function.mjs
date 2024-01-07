@@ -4,8 +4,8 @@ import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3'
 const region = 'us-east-2'
 const ses = new SES({ region })
 const s3Client = new S3Client({ region })
-const bucket = 'static-mail-templates'
-const source = 's.prasantreddy@gmail.com'
+const bucket = process.env.BUCKET
+const source = process.env.SOURCE
 const to = 's.prasantreddy94@gmail.com'
 export const lambdaHandler = async (event, context) => {
     const { Records } = event
@@ -51,32 +51,4 @@ export const lambdaHandler = async (event, context) => {
             }
         }
     }
-    // try {
-    //     await ses.sendEmail({
-    //         Destination: {
-    //             ToAddresses: ['s.prasantreddy94@gmail.com'],
-    //         },
-    //         Message: {
-    //             Body: {
-    //                 Text: { Data: 'This is email body' },
-    //             },
-    //             Subject: { Data: 'Email Notifictaion' },
-    //         },
-    //         Source: 's.prasantreddy@gmail.com',
-    //     })
-    //     return {
-    //         statusCode: 200,
-    //         body: JSON.stringify({
-    //             message: 'Email sent.',
-    //         }),
-    //     }
-    // } catch (err) {
-    //     console.error('Error sending email', err)
-    //     return {
-    //         statusCode: 500,
-    //         body: JSON.stringify({
-    //             message: 'Error sending email.',
-    //         }),
-    //     }
-    // }
 }

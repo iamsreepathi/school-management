@@ -6,7 +6,7 @@ const sqs = new SQS()
 export const lambdaHandler = async (event, context) => {
     const body = event.body
     try {
-        const res = await sqs.sendMessage({
+        await sqs.sendMessage({
             QueueUrl: queueUrl,
             MessageBody: body,
         })

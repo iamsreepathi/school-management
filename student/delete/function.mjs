@@ -15,7 +15,9 @@ import { DynamoDBClient, DeleteItemCommand } from '@aws-sdk/client-dynamodb'
 import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
 
-const client = new DynamoDBClient({})
+const client = new DynamoDBClient({
+    endpoint: 'http://dynamo:8000',
+})
 
 const ajv = new Ajv()
 

@@ -17,7 +17,9 @@ import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
 import { student } from '/opt/shared/student/schema.mjs'
 
-const client = new DynamoDBClient({})
+const client = new DynamoDBClient({
+    endpoint: 'http://dynamo:8000',
+})
 
 const ajv = new Ajv()
 
